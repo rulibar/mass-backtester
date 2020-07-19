@@ -1,0 +1,4 @@
+20-7-19
+I'm ready to program a mass backtester.
+
+This program will test a binance-pybot strategy on multiple sets of historical price data.
