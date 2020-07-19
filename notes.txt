@@ -2,3 +2,26 @@
 I'm ready to program a mass backtester.
 
 This program will test a binance-pybot strategy on multiple sets of historical price data.
+
+I imagine it working like this:
+- I will have a program called maba.py (mass backtester)
+- maba.py has a class in it like binance-pybot's Instance class
+- Inside the class will be a method for init and strat, which can be copied
+from binance-pybot
+- maba.py will be pointed to a data folder
+- In the data folder will be several files containing historical price data
+- Each file corresponds to a specific exchange, pair, timeframe, and period
+- maba.py tests the strategy on each of the data files
+- maba.py outputs the results to a text file
+
+Then what I can do is tweak the strategy and retest it and compare how the tweak
+affected the results. If I am running this test on a significant amount of
+data sets then the effect of tweaking the strategy on the overall results is
+more meaningful.
+
+***
+
+So here's the plan.
+- First create a program that can get historical price data from Binance
+- Get a couple of data files in the data folder
+- Create the maba.py file and program it to do what I want
