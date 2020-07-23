@@ -25,3 +25,54 @@ So here's the plan.
 - First create a program that can get historical price data from Binance
 - Get a couple of data files in the data folder
 - Create the maba.py file and program it to do what I want
+
+7-23
+Notes:
+- Use client.get_historical_klines
+- Candles come back in a list and have this format:
+[
+  [
+    1499040000000,      // Open time
+    "0.01634790",       // Open
+    "0.80000000",       // High
+    "0.01575800",       // Low
+    "0.01577100",       // Close
+    "148976.11427815",  // Volume
+    1499644799999,      // Close time
+    "2434.19055334",    // Quote asset volume
+    308,                // Number of trades
+    "1756.87402397",    // Taker buy base asset volume
+    "28.46694368",      // Taker buy quote asset volume
+    "17928899.62484339" // Ignore.
+  ]
+]
+
+More notes:
+- If you initialize a datetime object with yyyy/mm/dd it gives you the start
+of the day in your local time zone
+- If you use the timestamp method, it gives unix time in seconds.
+- If you use time.time, it gives the current unix time in seconds.
+- But Binance days are based on UTC. So it would be preferable if the datetime
+object initialized at the start of the day in UTC time
+- Also, Binance takes timestamps in ms, not seconds, so multiply by 1000
+    d = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
+    print(1000 * d.timestamp())
+
+So basically what I can do is initialize a datetime object with a year, month,
+and day. One for start_date, one for end_date. Then convert it to the format
+needed, and retrieve klines directly using get_historical_klines.
+
+Notes:
+- I won't bother complicating it with time of day
+- I really don't think it's necessary to have time of day precision
+
+The program will take a pair, interval, and start/end date w/o time precision.
+It start at the start-of-day in UTC time, and end at the end-of-day for the
+start and end dates provided. And it will get the candles in that period of
+the specified interval.
+- Technically I could test one full day by putting the same date for start/end
+
+***
+
+I verified that my new method, putting yyyy/mm/dd instead of the strings, gives
+the same result from Binance as using the strings.
