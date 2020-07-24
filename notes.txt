@@ -76,3 +76,37 @@ the specified interval.
 
 I verified that my new method, putting yyyy/mm/dd instead of the strings, gives
 the same result from Binance as using the strings.
+
+***
+
+Note: When a live instance starts up it gets 600 historical candles so it
+can feed that data to talib and get indicators. So for the backtest to be
+accurate it has to get 600 extra early candles too.
+
+I'll leave the number of early candles for indicators as a variable in the
+get_date code.
+
+
+***
+
+Note: If I get klines from Binance direcly I am limited by the tick offset that
+I'm allowed to do and also by the intervals that I can do. For example, I can't
+do daily candles in my local timezone, and I can't do 45 minute candles.
+
+However, if I need to do something like that then I can always just get it some
+other way. Ultimately once I have the data I should be able to use the
+backtester on it regardless of the tick offset or interval.
+
+For now I don't care about using an arbitrary tick offset or interval size.
+
+If I did want to allow arbitrary tick offset or interval size, I would have
+to import 1m candles for the whole range, then compile the custom candles.
+That's over 500k candles for 1 year.
+
+7-24
+Okay I set it up so it gets exactly n_early_candles extra candles on the front,
+for calculating indicators.
+
+So the mass backtester will have to know to start on the 601th candle. Basically
+run the first 601 candles. Then the first 601 candles excluding the very first
+one. And so on.
