@@ -16,7 +16,7 @@ from binance-pybot
 
 Then what I can do is tweak the strategy and retest it and compare how the tweak
 affected the results. If I am running this test on a significant amount of
-data sets then the effect of tweaking the strategy on the overall results is
+datasets then the effect of tweaking the strategy on the overall results is
 more meaningful.
 
 ***
@@ -110,3 +110,78 @@ for calculating indicators.
 So the mass backtester will have to know to start on the 601th candle. Basically
 run the first 601 candles. Then the first 601 candles excluding the very first
 one. And so on.
+
+7-30
+Maba will be very similar to Pybot, because it's intended to mimic live Pybot
+strategies for comparison. So I'll try to copy Pybot as much as possible.
+
+Here's how it will work:
+- Create a folder for a given strategy: strat_1/
+- Add strat_1/data/ and strat_1/maba.py
+- Replace strat and init in maba.py to strat_1 (strat_1_strat.py)
+- Use get_data.py to populate data/ with some datasets
+- Then run maba.py
+- maba.py tests each dataset, and makes a log folder for each dataset
+- maba.py creates a summary.txt file and gives me the results in my desired format
+
+strat_1/
+    maba_strat_1.py
+    config.txt
+    summary.txt
+    data/
+        ethbtc_2h_200101-200201.txt
+        xrpbtc_2h_200101-200201.txt
+    logs/
+        ethbtc_2h_200101-200201/
+            2001/
+                200101.log
+                ...
+        xrpbtc_2h_200101-200201/
+            2001/
+                200101.log
+                ...
+
+Then when I'm comparing strategies I can just look at the summary.txt file
+and get the relevant data and add it to my spreadsheet.
+
+Notes:
+- I don't have to connect to Binance API at all
+- I just have to provide a path to the data, which will most likely be data/
+- I also have to provide n_early_candles and make sure it matches the value from
+get_data.py, so the backtester knows where to start, most likely 600
+
+- I run maba.py
+- It goes into data, gets the first data file
+- Updates logger and makes a log file corresponding to the file name
+- It runs through the data similar to how Pybot works, saving logs
+- It stores whatever data it needs to compile the summary before moving on
+to the next dataset
+- After all datasets are complete, it refers to the stored data and creates
+the summary.txt file
+
+***
+
+Pybot works by setting up logging then creating an Instance class. The Instance
+class uses the pre-defined Binance client to get candles, get portfolio info,
+do trading, calculate the trading algorithm etc. The Instance class stays
+updated by pinging every 0.5 seconds.
+
+Maba works by going into data/, and cycling through the the files. For each
+file it sets up logging and creates a Backtest class. The Backtest class will
+mimic the Instance class using the data.
+
+***
+
+I'm thinking I can store the backtest results in a list.
+Like backtests[0] = Backtest().
+That way I could easily retrieve any information I want when I'm trying to
+create the summary.
+But I want to avoid storing the price data for all of the datasets.
+Really, the things that I need are:
+- name
+- ticks, days, trades
+- performance
+
+Maybe what I'll do is just create a custom object for each Backtest instance,
+with all the info that I need. Save that to a list. Then use the list to
+create the summary.
