@@ -1,8 +1,16 @@
 """
-get_data.py (v1.0.0) (20-7-29)
+get_data.py (v1.0.1) (20-7-30)
+https://github.com/rulibar/mass-backtester
 Gets historical candle data from Binance for a specified pair, interval, start
 date, and end date. Gets a specified number of early candles for calculating
 indicators.
+
+v1.0.1 (20-7-30)
+- Take asset/base instead of pair
+- Change the naming scheme of data files
+    - Use currency pair instead of pair (BTC_ETH instead of ETHBTC)
+    - Use interval_mins instead of interval (120m instead of 2h)
+
 """
 
 from datetime import datetime, timezone
@@ -15,7 +23,8 @@ client = Client(api_key, api_secret)
 
 n_early_candles = 600 # Number of early candles for indicators
 
-pair = 'ETHBTC' # Ex: 'ETHBTC'
+asset = 'ETH' # Ex: 'ETH'
+base = 'BTC' # Ex: 'BTC'
 interval_mins = 120 # Ex: 5, 15, 30, 60, 120, 240, 360, 480, 720, 1440
 
 start_year = 2020 # Ex: 2020
@@ -40,9 +49,12 @@ start_date = int(1000 * start_date)
 start_date_adj = int(1000 * start_date_adj)
 end_date = datetime(end_year, end_month, end_day, tzinfo=timezone.utc)
 end_date = int(1000 * end_date.timestamp())
-candles = client.get_historical_klines(pair, interval, start_date_adj, end_date)
 
 # main code
+pair = "{}{}".format(asset, base)
+currency_pair = "{}_{}".format(base, asset)
+candles = client.get_historical_klines(pair, interval, start_date_adj, end_date)
+
 early_candles = 0
 for candle in candles:
     if candle[0] < start_date: early_candles += 1
@@ -54,8 +66,8 @@ candles_str = str()
 for candle in candles:
     candles_str += str(candle) + "\n"
 
-file_name = pair.lower()
-file_name += "_" + interval
+file_name = currency_pair.lower()
+file_name += "_" + str(interval_mins) + "m"
 file_name += "_" + str(start_year)[-2:]
 if start_month > 10: file_name += str(start_month)
 else: file_name += "0" + str(start_month)
