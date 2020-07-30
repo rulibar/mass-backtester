@@ -185,3 +185,12 @@ Really, the things that I need are:
 Maybe what I'll do is just create a custom object for each Backtest instance,
 with all the info that I need. Save that to a list. Then use the list to
 create the summary.
+
+***
+
+The Backtest object will take the path to the data file to initialize. From
+this, it needs to get the asset, base, and interval_mins.
+- With the way I'm doing it, it's hard to get the asset and the base. I should
+be using currency pair in the naming scheme instead of pair.
+- Also, it's hard to get interval_mins. I should be using interval_mins in the
+naming scheme instead of interval.
