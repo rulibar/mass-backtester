@@ -99,7 +99,82 @@ class Backtest:
         self.interval = int(self.dsname_data[2][:-1])
         set_log_file(self.data[n_early_candles][0], self.dsname)
         logger.info("New trader instance started on {} {}m.".format(self.pair, self.interval))
-        #self.get_params()
+        self.get_params()
+
+    def get_params(self):
+        # import and process params
+        params = dict()
+        with open("config.txt") as cfg:
+            par = [l.split()[0] for l in cfg.read().split("\n")[2:-1]]
+            for p in par:
+                p = p.split("=")
+                if len(p) != 2: continue
+                params[str(p[0])] = str(p[1])
+
+        # check values
+        funds = float(params['funds'])
+        if funds < 0:
+            logger.warning("Warning! Maximum amount to invest should be zero or greater.")
+            params['funds'] = "0"
+
+        logs_per_day = float(params['logs_per_day'])
+        if logs_per_day < 0:
+            logger.warning("Warning! Logs per day should be zero or greater.")
+            params['logs_per_day'] = "1"
+
+        log_dws = str(params['log_dws'])
+        if log_dws not in {"yes", "no"}:
+            logger.warning("Warning! Log deposits and withdrawals set to 'yes'.")
+            params['log_dws'] = "yes"
+
+        # check for additions and removals
+        if self.ticks == 0: self.params = dict()
+
+        keys_old = {key for key in self.params}
+        keys_new = {key for key in params}
+
+        keys_added = {key for key in keys_new if key not in keys_old}
+        keys_removed = {key for key in keys_old if key not in keys_new}
+
+        if len(keys_added) > 0:
+            logger.info("{} parameter(s) added.".format(len(keys_added)))
+            for key in keys_added: logger.info("    \"{}\": {}".format(key, params[key]))
+        if len(keys_removed) > 0:
+            logger.info("{} parameter(s) removed.".format(len(keys_removed)))
+            for key in keys_removed: logger.info("    \"{}\"".format(key))
+
+        # check for changes
+        keys_remaining = {key for key in keys_old if key in keys_new}
+        keys_changed = set()
+
+        for key in keys_remaining:
+            if params[key] != self.params[key]: keys_changed.add(key)
+
+        if self.ticks == 0:
+            keys_changed.add('funds'); keys_changed.add('logs_per_day'); keys_changed.add('log_dws')
+
+        if "funds" in keys_changed:
+            if params['funds'] == "0": logger.info("No maximum investment amount specified.")
+            else: logger.info("Maximum investment amount set to {} {}.".format(params['funds'], self.base))
+            self.params['funds'] = params['funds']
+            keys_changed.remove('funds')
+        if "logs_per_day" in keys_changed:
+            if params['logs_per_day'] == "0": logger.info("Log updates turned off.")
+            elif params['logs_per_day'] == "1": logger.info("Logs updating once per day.")
+            else: logger.info("Logs updating {} times per day".format(params['logs_per_day']))
+            self.params['logs_per_day'] = params['logs_per_day']
+            keys_changed.remove('logs_per_day')
+        if "log_dws" in keys_changed:
+            if params['log_dws'] == "yes": logger.info("Deposit and withdrawal logs enabled.")
+            else: logger.info("Deposit and withdrawal logs disabled.")
+            self.params['log_dws'] = params['log_dws']
+            keys_changed.remove('log_dws')
+
+        if len(keys_changed) > 0:
+            logger.info("{} parameter(s) changed.".format(len(keys_changed)))
+            for key in keys_changed:
+                logger.info("    \"{}\": {} -> {}".format(key, self.params[key], params[key]))
+                self.params[key] = params[key]
 
 # main code
 datasets = os.listdir(data_dir)
