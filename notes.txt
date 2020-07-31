@@ -194,3 +194,35 @@ this, it needs to get the asset, base, and interval_mins.
 be using currency pair in the naming scheme instead of pair.
 - Also, it's hard to get interval_mins. I should be using interval_mins in the
 naming scheme instead of interval.
+
+***
+
+The set_log_file function sets the destination and the format for logs.
+In pybot, it's called at the start, then at the start of each tick. The format
+never changes, but the destination may change at the start of a tick.
+
+In maba, the situation will be the same. But I need to also set the destination
+at the start of analyzing a new data file. As if I were starting a new live
+instance.
+
+Also in maba the time will be calculated in a different way; based on the
+candle data instead of getting the current time.
+
+Notes:
+- The Backtest object does all of the logging in logs/
+- The only other logging is into summary.txt at the end
+- Otherwise, messages will be printed to the console
+- So I have to set up the logger:
+    - Whenever initializing a new backtest instance
+    - At the start of a new tick when backtesting
+    - Before logging the summary
+
+***
+
+Notes:
+- set_log_file for maba also needs to be given dsname (dataset name) because
+it creates a folder of the same name inside logs/ to store data in
+- set_log_file for pybot doesn't need dsname or a timestamp, because it doesn't
+create the subfolder, and it gets timestamps from checking the actual time
+- set_log_file won't work for setting up the summary. I will probably have to
+create a custom function, possibly called set_summary_file
