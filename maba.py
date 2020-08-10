@@ -111,6 +111,12 @@ class Backtest:
         self.positions_start = None
         #self.positions_init_ts = 0
         self.positions = {"asset": [self.asset, float(start_pos[0])], "base": [self.base, float(start_pos[1])]}
+        self.positions_f = {'asset': list(self.positions['asset'])}
+        self.positions_f['base'] = list(self.positions['base'])
+        self.positions_t = {'asset': list(self.positions['asset'])}
+        self.positions_t['base'] = list(self.positions['base'])
+        p = Portfolio(self.candles[n_early_candles], self.positions, float(self.params['funds']))
+        # Note self.candles[n_early_candles] is the 601th candle
 
     def get_candle(self, data):
         # data is a kline list from Binance
