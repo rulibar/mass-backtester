@@ -31,6 +31,7 @@ import logging
 # user vars
 n_early_candles = 600
 data_dir = "data/"
+start_pos = [0, 1] # [asset, base]
 
 # set up logger
 def set_log_file(ts, dsname):
@@ -109,7 +110,7 @@ class Backtest:
         self.candle_start = None
         self.positions_start = None
         #self.positions_init_ts = 0
-        #self.positions = self.get_positions()
+        self.positions = {"asset": [self.asset, float(start_pos[0])], "base": [self.base, float(start_pos[1])]}
 
     def get_candle(self, data):
         # data is a kline list from Binance
@@ -197,6 +198,11 @@ class Backtest:
             for key in keys_changed:
                 logger.info("    \"{}\": {} -> {}".format(key, self.params[key], params[key]))
                 self.params[key] = params[key]
+
+    def get_positions(self):
+        positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
+
+        return positions
 
 # main code
 datasets = os.listdir(data_dir)
