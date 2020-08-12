@@ -103,7 +103,8 @@ class Backtest:
         logger.info("New trader instance started on {} {}m.".format(self.pair, self.interval))
         self.get_params()
 
-        self.candles = [self.get_candle(dat) for dat in self.data]
+        self.candles_data = [self.get_candle(dat) for dat in self.data]
+        self.candles = self.candles_data[:n_early_candles + 1]
 
         # dws
 
@@ -115,8 +116,11 @@ class Backtest:
         self.positions_f['base'] = list(self.positions['base'])
         self.positions_t = {'asset': list(self.positions['asset'])}
         self.positions_t['base'] = list(self.positions['base'])
-        p = Portfolio(self.candles[n_early_candles], self.positions, float(self.params['funds']))
-        # Note self.candles[n_early_candles] is the 601th candle
+        p = Portfolio(self.candles[-1], self.positions, float(self.params['funds']))
+        self.last_order = {"type": "none", "amt": 0, "pt": self.candles[-1]['close']}
+        self.signal = {"rinTarget": p.rinT, "rinTargetLast": p.rinT, "position": "none", "status": 0, "apc": p.price, "target": p.price, "stop": p.price}
+        self.performance = {"bh": 0, "change": 0, "W": 0, "L": 0, "wSum": 0, "lSum": 0, "w": 0, "l": 0, "be": 0, "aProfits": 0, "bProfits": 0, "cProfits": 0}
+        self.init(p)
 
     def get_candle(self, data):
         # data is a kline list from Binance
@@ -209,6 +213,14 @@ class Backtest:
         positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
 
         return positions
+
+    def init(self, p):
+        self.bot_name = "Mass Backtester"
+        self.version = "0.0.1"
+        logger.info("Analyzing the market...")
+        # get randomization
+        # no randomization yet
+        logger.info("Ready to start trading...")
 
 # main code
 datasets = os.listdir(data_dir)
