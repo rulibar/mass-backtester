@@ -226,3 +226,17 @@ it creates a folder of the same name inside logs/ to store data in
 create the subfolder, and it gets timestamps from checking the actual time
 - set_log_file won't work for setting up the summary. I will probably have to
 create a custom function, possibly called set_summary_file
+
+8-12
+Notes:
+- This assumes that there's no minimum order size. So if your real bots start
+hitting minimum order limits, then the real results differ from backtest
+results.
+- This does not round the buy/sell amounts or the prices to number of
+sig figs that Binance requires because it's not communicating with Binance and
+it can't get that information. Again, the smaller your real account size, the
+more this matters. With a large volume, rounding will be negligible.
+- Therefore it's important to give your bots sufficient funds. Because with a
+small account size they will differ more from backtesting.
+- However, it will round to 8 sig figs, since that's the maximum Binance
+would allow in general.
