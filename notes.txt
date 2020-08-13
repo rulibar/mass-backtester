@@ -240,3 +240,9 @@ more this matters. With a large volume, rounding will be negligible.
 small account size they will differ more from backtesting.
 - However, it will round to 8 sig figs, since that's the maximum Binance
 would allow in general.
+
+8-13
+To do list:
+- Add strat and bso
+- Make sure the backtester is simulating trading
+- Go back and figure out how to implement pfake and ptrade so the log is accurate
