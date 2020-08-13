@@ -106,6 +106,12 @@ class Backtest:
         self.candles_data = [self.get_candle(dat) for dat in self.data]
         self.candles = self.candles_data[:n_early_candles + 1]
 
+        self.ticks_end = int(len(self.candles_data) - n_early_candles)
+
+        self.min_order = 0
+        self.amt_dec = 8
+        self.pt_dec = 8
+
         # dws
 
         self.candle_start = None
@@ -209,6 +215,12 @@ class Backtest:
                 logger.info("    \"{}\": {} -> {}".format(key, self.params[key], params[key]))
                 self.params[key] = params[key]
 
+    def get_new_candle(self):
+        candle_new = self.candles_data[n_early_candles + self.ticks - 1]
+
+        self.candles.append(candle_new)
+        self.candles = shrink_list(self.candles, 5000)
+
     def get_positions(self):
         positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
 
@@ -222,6 +234,19 @@ class Backtest:
         # no randomization yet
         logger.info("Ready to start trading...")
 
+    def run(self):
+        print(self.dsname)
+
+        while self.ticks < self.ticks_end:
+            self.ticks += 1
+            self.days = (self.ticks - 1) * self.interval / (60 * 24)
+
+            set_log_file(self.data[n_early_candles + self.ticks - 1][0], self.dsname)
+            self.get_new_candle()
+            print(self.candles[-1])
+
+        print("Backtest complete.")
+
 # main code
 datasets = os.listdir(data_dir)
 
@@ -234,16 +259,12 @@ for dataset in datasets:
     - Run the backtest
     - Save the relevant data from the Backtest instance
     """
+    # Initialize the Backtest instance
     data_path = "./" + data_dir + dataset
     backtest = Backtest(data_path)
 
-    # Import data
-
-    # Set up the logger
-
-    # Initialize the Backtest instance
-
     # Run the backtest
+    backtest.run()
 
     # Save the relevant data from the Backtest instance
 
