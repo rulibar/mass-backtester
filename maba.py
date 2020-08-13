@@ -106,8 +106,8 @@ class Backtest:
         self.candles_data = [self.get_candle(dat) for dat in self.data]
         self.candles = self.candles_data[:n_early_candles + 1]
 
+        # backtester vars
         self.ticks_end = int(len(self.candles_data) - n_early_candles)
-
         self.min_order = 0
         self.amt_dec = 8
         self.pt_dec = 8
@@ -222,9 +222,22 @@ class Backtest:
         self.candles = shrink_list(self.candles, 5000)
 
     def get_positions(self):
-        positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
+        #positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
+        positions = dict(self.positions)
 
         return positions
+
+    def get_position(self, p):
+        s = self.signal
+
+        apc = self.last_order['pt']
+        if p.positionValue > self.min_order:
+            if s['position'] != "long":
+                s['position'] = "long"; s['apc'] = apc
+        elif s['position'] != "none":
+            s['position'] = "none"; s['apc'] = apc
+
+        return
 
     def init(self, p):
         self.bot_name = "Mass Backtester"
@@ -243,7 +256,12 @@ class Backtest:
 
             set_log_file(self.data[n_early_candles + self.ticks - 1][0], self.dsname)
             self.get_new_candle()
-            print(self.candles[-1])
+
+            self.positions_last = dict(self.positions)
+            self.positions = self.get_positions()
+            p = Portfolio(self.candles[-1], self.positions, float(self.params['funds']))
+            self.get_position(p)
+            #self.get_performance(p)
 
         print("Backtest complete.")
 
