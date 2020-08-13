@@ -239,6 +239,66 @@ class Backtest:
 
         return
 
+    def get_performance(self, p):
+        if self.ticks == 1:
+            self.candle_start = dict(self.candles[-1])
+            self.positions_start = dict(self.positions)
+        r = self.performance
+        s = self.signal
+        pos_f = self.positions_f
+        pos_t = self.positions_t
+        c_start = self.candle_start
+        p_start = self.positions_start
+        p_start_size = p_start['base'][1] + c_start['close'] * p_start['asset'][1]
+
+        pfake_size = pos_f['base'][1] + p.price * pos_f['asset'][1]
+        ptrade_size = pos_t['base'][1] + p.price * pos_t['asset'][1]
+
+        r['bh'] = (p.price - c_start['close']) / c_start['close']
+        r['change'] = (p.size - p_start_size) / p_start_size
+        r['bProfits'] = pfake_size - 1
+        r['aProfits'] = (1 + r['bProfits']) / (1 + r['bh']) - 1
+        r['cProfits'] = ptrade_size - 1
+
+        W = int(r['W']); w = float(r['w'])
+        L = int(r['L']); l = float(r['l'])
+        if r['cProfits'] >= 0: W += 1; wSum = r['wSum'] + r['cProfits']; w = wSum / W
+        if r['cProfits'] < 0: L += 1; lSum = r['lSum'] + r['cProfits']; l = lSum / L
+        r['be'] = W * w + L * l
+
+    def log_update(self, p):
+        r = self.performance
+
+        hr = "~~~~~~~"
+        tpd = float()
+        if self.days != 0: tpd = self.trades / self.days
+        winrate = float()
+        if r['W'] + r['L'] != 0: winrate = 100 * r['W'] / (r['W'] + r['L'])
+        header = "{} {} {} {} {}".format(self.bot_name, self.version, hr, self.exchange.title(), self.pair)
+        trades = "{} trades ({} per day)".format(int(self.trades), round(tpd, 2))
+        currency = "{} {}".format(fix_dec(p.base), self.base)
+        price = "{} {}/{}".format(fix_dec(p.price), self.base, self.asset)
+        assets = "{} {}".format(fix_dec(p.asset), self.asset)
+        assetvalue = "{} {}".format(fix_dec(p.positionValue), self.base)
+        accountvalue = "{} {}".format(fix_dec(p.size), self.base)
+        boteff = "{}% {},".format(round(100 * r['be'], 2), self.base)
+        boteff += " {}% {}".format(round(100 * ((1 + r['be']) / (1 + r['bh'])) - 100, 2), self.asset)
+        botprof = "{}% {},".format(round(100 * r['bProfits'], 2), self.base)
+        botprof += " {}% {}".format(round(100 * ((1 + r['bProfits']) / (1 + r['bh'])) - 100, 2), self.asset)
+
+        logger.info("{} {} {}".format(2 * hr, header, 2 * hr))
+        logger.info("Days since start: {} | Trades: {}".format(round(self.days, 2), trades))
+        logger.info("Currency: {} | Current price: {}".format(currency, price))
+        logger.info("Assets: {} | Value of assets: {}".format(assets, assetvalue))
+        logger.info("Value of account: {}".format(accountvalue))
+        logger.info("    Win rate: {}%".format(round(winrate, 2)))
+        logger.info("    Wins: {} | Average win: {}%".format(r['W'], round(100 * r['w'], 2)))
+        logger.info("    Losses: {} | Average loss: {}%".format(r['L'], round(100 * r['l'], 2)))
+        logger.info("    Current profits: {}%".format(round(100 * r['cProfits'], 2)))
+        logger.info("    Bot efficiency: {}".format(boteff))
+        logger.info("Bot profits: {}".format(botprof))
+        logger.info("Buy and hold: {}%".format(round(100 * r['bh'], 2)))
+
     def init(self, p):
         self.bot_name = "Mass Backtester"
         self.version = "0.0.1"
@@ -251,9 +311,9 @@ class Backtest:
         print(self.dsname)
 
         while self.ticks < self.ticks_end:
+            # Preliminary setup
             self.ticks += 1
             self.days = (self.ticks - 1) * self.interval / (60 * 24)
-
             set_log_file(self.data[n_early_candles + self.ticks - 1][0], self.dsname)
             self.get_new_candle()
 
@@ -261,7 +321,13 @@ class Backtest:
             self.positions = self.get_positions()
             p = Portfolio(self.candles[-1], self.positions, float(self.params['funds']))
             self.get_position(p)
-            #self.get_performance(p)
+            self.get_performance(p)
+
+            # Log output
+            if self.params['logs_per_day'] == "0": self.next_log = self.days + 1
+            if self.days >= self.next_log:
+                self.log_update(p)
+                self.next_log += 1 / float(self.params['logs_per_day'])
 
         print("Backtest complete.")
 
