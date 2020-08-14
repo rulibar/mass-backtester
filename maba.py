@@ -143,6 +143,45 @@ class Backtest:
             "ts_end": int(data[6])}
         return candle
 
+    def limit_buy(self, amt, pt):
+        logger.warning("Trying to buy {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
+        print("Trying to buy {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
+        self.last_order = {"type": "buy", "amt": amt, "pt": pt}
+
+    def limit_sell(self, amt, pt):
+        logger.warning("Trying to sell {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
+        print("Trying to sell {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
+        self.last_order = {"type": "sell", "amt": amt, "pt": pt}
+
+    def bso(self, p):
+        s = self.signal
+        if s['rinTarget'] != s['rinTargetLast']:
+            print("s['rinTarget']: {} s['rinTargetLast']: {}".format(s['rinTarget'], s['rinTargetLast']))
+
+        rbuy = s['rinTarget'] - s['rinTargetLast']
+        order_size = 0
+        if rbuy * p.asset >= 0:
+            order_size = abs(rbuy * p.funds)
+            if order_size > p.base: order_size = p.base
+        if rbuy * p.asset < 0:
+            rbuy_asset = rbuy / s['rinTargetLast']
+            order_size = abs(rbuy_asset * p.asset * p.price)
+        if order_size < self.min_order: order_size = 0
+
+        if order_size > 0:
+            if rbuy > 0: pt = (1 + 0.0015) * p.price
+            else: pt = (1 - 0.0015) * p.price
+            pt = round(pt, self.pt_dec)
+            if rbuy > 0: amt = order_size / pt
+            else: amt = order_size / p.price
+            amt = round(0.995 * amt * 10**self.amt_dec - 2) / 10**self.amt_dec
+            if rbuy > 0: self.limit_buy(amt, pt)
+            if rbuy < 0: self.limit_sell(amt, pt)
+        if rbuy == 0: order_size = 0
+        if order_size == 0:
+            if self.ticks == 1: logger.info("Waiting for a signal to trade...")
+            self.last_order = {"type": "none", "amt": 0, "pt": p.price}
+
     def get_params(self):
         # import and process params
         params = dict()
@@ -225,14 +264,58 @@ class Backtest:
         self.candles = shrink_list(self.candles, 5000)
 
     def get_positions(self):
-        #positions = {"asset": [self.asset, 0], "base": [self.base, 0]}
-        positions = dict(self.positions)
+        l = self.last_order
+        l_type = l['type']; l_amt = l['amt']; l_pt = l['pt']
+        positions = {key: value[:] for key, value in self.positions.items()}
+
+        if l_type == 'buy':
+            positions['base'][1] -= l_amt * l_pt
+            positions['asset'][1] += l_amt * 0.999
+        elif l_type == 'sell':
+            positions['base'][1] += l_amt * l_pt * 0.999
+            positions['asset'][1] -= l_amt
 
         return positions
 
-    def get_position(self, p):
+    def get_trades(self, p):
+        l = self.last_order
         s = self.signal
 
+        diffasset_trad = round(self.positions['asset'][1] - self.positions_last['asset'][1], 8)
+        diffbase_trad = round(self.positions['base'][1] - self.positions_last['base'][1], 8)
+
+        rbuy = s['rinTarget'] - s['rinTargetLast']
+        rTrade = 1
+
+        apc = l['pt']
+        if diffasset_trad != 0: apc = -diffbase_trad / diffasset_trad
+        #if l['amt'] != 0: rTrade = abs(diffasset_trad / l['amt'])
+
+        if diffasset_trad > 0:
+            log_amt = "{} {}".format(fix_dec(diffasset_trad), self.asset)
+            log_size = "{} {}".format(fix_dec(diffasset_trad * apc), self.base)
+            logger.warning("{} bought for {}.".format(log_amt, log_size))
+        elif diffasset_trad < 0:
+            log_amt = "{} {}".format(fix_dec(-diffasset_trad), self.asset)
+            log_size = "{} {}".format(fix_dec(-diffasset_trad * apc), self.base)
+            logger.warning("{} sold for {}.".format(log_amt, log_size))
+
+        if self.ticks == 1 or diffasset_trad != 0:
+            s['rinTargetLast'] += rTrade * rbuy
+            #self.update_f(p, apc)
+            print('rinTargetLast', s['rinTargetLast'])
+
+        return diffasset_trad, diffbase_trad, apc
+
+    def get_dwts(self, p):
+        s = self.signal
+        l = self.last_order
+
+        # get dws and trades
+        # no dws or manual trades in backtesting
+        self.get_trades(p)
+
+        # set position and apc
         apc = self.last_order['pt']
         if p.positionValue > self.min_order:
             if s['position'] != "long":
@@ -245,7 +328,7 @@ class Backtest:
     def get_performance(self, p):
         if self.ticks == 1:
             self.candle_start = dict(self.candles[-1])
-            self.positions_start = dict(self.positions)
+            self.positions_start = {key: value[:] for key, value in self.positions.items()}
         r = self.performance
         s = self.signal
         pos_f = self.positions_f
@@ -323,6 +406,8 @@ class Backtest:
         mas = talib.SMA(close_data, timeperiod = 20)[-1]
         mal = talib.SMA(close_data, timeperiod = 100)[-1]
 
+        print(mas - mal)
+
         s['rinTarget'] = 0
         if mas > mal: s['rinTarget'] = 1
 
@@ -336,10 +421,10 @@ class Backtest:
             set_log_file(self.data[n_early_candles + self.ticks - 1][0], self.dsname)
             self.get_new_candle()
 
-            self.positions_last = dict(self.positions)
+            self.positions_last = {key: value[:] for key, value in self.positions.items()}
             self.positions = self.get_positions()
             p = Portfolio(self.candles[-1], self.positions, float(self.params['funds']))
-            self.get_position(p)
+            self.get_dwts(p)
             self.get_performance(p)
 
             # Log output
@@ -348,9 +433,11 @@ class Backtest:
                 self.log_update(p)
                 self.next_log += 1 / float(self.params['logs_per_day'])
 
+            #if self.ticks > 100: exit()
+
             # Trading strategy, buy/sell/other
             self.strat(p)
-            #self.bso(p)
+            self.bso(p)
 
         print("Backtest complete.")
 
