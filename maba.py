@@ -26,7 +26,10 @@ Backtests the strategy on each dataset and creates a summary of the results.
 
 import os
 import time
+import numpy
+import random
 import logging
+import talib
 
 # user vars
 n_early_candles = 600
@@ -307,6 +310,22 @@ class Backtest:
         # no randomization yet
         logger.info("Ready to start trading...")
 
+    def strat(self, p):
+        """ strategy / trading algorithm
+        - Use talib for indicators
+        - Talib objects require numpy.array objects as input
+        - s stands for signal, rinTarget stands for 'ratio invested target'
+        - Set s['rinTarget'] between 0 and 1. 0 is 0%, 1 is 100% invested
+        """
+        s = self.signal
+
+        close_data = numpy.array([c['close'] for c in self.candles])
+        mas = talib.SMA(close_data, timeperiod = 20)[-1]
+        mal = talib.SMA(close_data, timeperiod = 100)[-1]
+
+        s['rinTarget'] = 0
+        if mas > mal: s['rinTarget'] = 1
+
     def run(self):
         print(self.dsname)
 
@@ -328,6 +347,10 @@ class Backtest:
             if self.days >= self.next_log:
                 self.log_update(p)
                 self.next_log += 1 / float(self.params['logs_per_day'])
+
+            # Trading strategy, buy/sell/other
+            self.strat(p)
+            #self.bso(p)
 
         print("Backtest complete.")
 
