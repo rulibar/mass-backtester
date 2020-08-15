@@ -145,18 +145,14 @@ class Backtest:
 
     def limit_buy(self, amt, pt):
         logger.warning("Trying to buy {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
-        print("Trying to buy {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
         self.last_order = {"type": "buy", "amt": amt, "pt": pt}
 
     def limit_sell(self, amt, pt):
         logger.warning("Trying to sell {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
-        print("Trying to sell {} {} for {} {}. (price: {})".format(fix_dec(amt), self.asset, fix_dec(round(amt * pt, self.pt_dec)), self.base, fix_dec(pt)))
         self.last_order = {"type": "sell", "amt": amt, "pt": pt}
 
     def bso(self, p):
         s = self.signal
-        if s['rinTarget'] != s['rinTargetLast']:
-            print("s['rinTarget']: {} s['rinTargetLast']: {}".format(s['rinTarget'], s['rinTargetLast']))
 
         rbuy = s['rinTarget'] - s['rinTargetLast']
         order_size = 0
@@ -277,6 +273,38 @@ class Backtest:
 
         return positions
 
+    def update_f(self, p, apc):
+        if apc == 0:
+            if self.ticks != 1: return
+            apc = p.price
+        r = self.performance
+        s = self.signal
+        pos_f = self.positions_f
+        pos_t = self.positions_t
+
+        size = p.base + apc * p.asset
+        rin = apc * p.asset / size
+        sizeT = p.funds * (1 - s['rinTargetLast']) + apc * p.asset
+        rinT = apc * p.asset / sizeT
+
+        if self.ticks == 1: size_f = 1; size_t = 1
+        else:
+            size_f = pos_f['base'][1] + apc * pos_f['asset'][1]
+            size_t = pos_t['base'][1] + apc * pos_t['asset'][1]
+            if s['rinTarget'] == 0:
+                profit = size_t - 1
+                if profit >= 0: r['wSum'] += profit; r['W'] += 1; self.trades += 1
+                if profit < 0: r['lSum'] += profit; r['L'] += 1; self.trades += 1
+                if r['W'] != 0: r['w'] = r['wSum'] / r['W']
+                if r['L'] != 0: r['l'] = r['lSum'] / r['L']
+                size_t = 1
+
+        base_f = (1 - rin) * size_f; base_t = (1 - rinT) * size_t
+        asset_f = (rin / apc) * size_f; asset_t = (rinT / apc) * size_t
+
+        pos_f['base'][1] = base_f; pos_t['base'][1] = base_t
+        pos_f['asset'][1] = asset_f; pos_t['asset'][1] = asset_t
+
     def get_trades(self, p):
         l = self.last_order
         s = self.signal
@@ -287,10 +315,8 @@ class Backtest:
         rbuy = s['rinTarget'] - s['rinTargetLast']
         rTrade = 1
 
-        apc = l['pt']
+        apc = 0
         if diffasset_trad != 0: apc = -diffbase_trad / diffasset_trad
-        #if l['amt'] != 0: rTrade = abs(diffasset_trad / l['amt'])
-
         if diffasset_trad > 0:
             log_amt = "{} {}".format(fix_dec(diffasset_trad), self.asset)
             log_size = "{} {}".format(fix_dec(diffasset_trad * apc), self.base)
@@ -302,8 +328,7 @@ class Backtest:
 
         if self.ticks == 1 or diffasset_trad != 0:
             s['rinTargetLast'] += rTrade * rbuy
-            #self.update_f(p, apc)
-            print('rinTargetLast', s['rinTargetLast'])
+            self.update_f(p, apc)
 
         return diffasset_trad, diffbase_trad, apc
 
@@ -386,8 +411,8 @@ class Backtest:
         logger.info("Buy and hold: {}%".format(round(100 * r['bh'], 2)))
 
     def init(self, p):
-        self.bot_name = "Mass Backtester"
-        self.version = "0.0.1"
+        self.bot_name = "maba"
+        self.version = "0.0.0"
         logger.info("Analyzing the market...")
         # get randomization
         # no randomization yet
@@ -405,8 +430,6 @@ class Backtest:
         close_data = numpy.array([c['close'] for c in self.candles])
         mas = talib.SMA(close_data, timeperiod = 20)[-1]
         mal = talib.SMA(close_data, timeperiod = 100)[-1]
-
-        print(mas - mal)
 
         s['rinTarget'] = 0
         if mas > mal: s['rinTarget'] = 1
