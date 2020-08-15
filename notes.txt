@@ -243,6 +243,35 @@ would allow in general.
 
 8-13
 To do list:
-- Add strat and bso
-- Make sure the backtester is simulating trading
+/- Add strat and bso
+/- Make sure the backtester is simulating trading
 - Go back and figure out how to implement pfake and ptrade so the log is accurate
+
+8-14
+Again had an issue with copying positions.
+
+Remember, when you copy a dict like dict2 = dict(dict1) it copies the structure
+but the objects within dict1 are not copied.
+
+So in my case there is a list within dict1, I'm creating dict2 then changing
+an item within the list, which is then changing in dict2, even though I thought
+dict2 was supposed to be a new object. It's because the two dict objects are
+pointing to the same internal list. I need to deep clone a dict. Maybe it's not
+necessary if the key/value pairs are just strings or numbers. But it's true
+if they contain lists or other dicts.
+
+In Binance Pybot in the get_positions function I was not cloning self.positions.
+I was explicitly defining the new object and then getting the positions from
+Binance API.
+
+To deep copy a dict it's often necessary to import the copy module. Then go
+copy.deepcopy(dict1).
+
+But you can avoid doing this by being creative. For example, by explicitly
+cloning the internal objects.
+
+In Binance Pybot I should probably remove all instances where I shallow copy
+a dict which needs to be deep copied. Just for completeness. Even though it's
+currently working by chance.
+
+I don't think it's necessary for me to import the copy module in these cases.
