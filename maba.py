@@ -84,6 +84,32 @@ class Portfolio:
         self.rin = self.price * self.asset / self.size
         self.rinT = self.price * self.asset / self.sizeT
 
+class BacktestData:
+    def __init__(self, backtest):
+        # backtest is a completed Backtest object
+        self.dspath = backtest.dspath
+        self.dsname = backtest.dsname
+
+        self.ticks = backtest.ticks; self.days = backtest.days; self.trades = backtest.trades
+        self.exchange = "binance"
+        self.base = backtest.base
+        self.asset = backtest.asset
+        self.pair = backtest.pair
+        self.interval = backtest.interval
+        self.params = backtest.params
+
+        self.min_order = backtest.min_order
+        self.amt_dec = backtest.amt_dec
+        self.pt_dec = backtest.pt_dec
+
+        self.candle_start = backtest.candle_start
+        self.candle = backtest.candles[-1]
+        self.positions_start = backtest.positions_start
+        self.positions = backtest.positions
+
+        self.signal = backtest.signal
+        self.performance = backtest.performance
+
 class Backtest:
     def __init__(self, dspath):
         # Expected dspath format: './data/btc_xrp_120m_200101-200301.txt'
@@ -115,11 +141,8 @@ class Backtest:
         self.amt_dec = 8
         self.pt_dec = 8
 
-        # dws
-
         self.candle_start = None
         self.positions_start = None
-        #self.positions_init_ts = 0
         self.positions = {"asset": [self.asset, float(start_pos[0])], "base": [self.base, float(start_pos[1])]}
         self.positions_f = {'asset': list(self.positions['asset'])}
         self.positions_f['base'] = list(self.positions['base'])
@@ -456,8 +479,6 @@ class Backtest:
                 self.log_update(p)
                 self.next_log += 1 / float(self.params['logs_per_day'])
 
-            #if self.ticks > 100: exit()
-
             # Trading strategy, buy/sell/other
             self.strat(p)
             self.bso(p)
@@ -466,16 +487,10 @@ class Backtest:
 
 # main code
 datasets = os.listdir(data_dir)
+backtests = list()
 
 # cycle through the data
 for dataset in datasets:
-    """
-    - Import the data
-    - Set up the logger
-    - Initialize the Backtest instance
-    - Run the backtest
-    - Save the relevant data from the Backtest instance
-    """
     # Initialize the Backtest instance
     data_path = "./" + data_dir + dataset
     backtest = Backtest(data_path)
@@ -484,5 +499,10 @@ for dataset in datasets:
     backtest.run()
 
     # Save the relevant data from the Backtest instance
+    backtest_data = BacktestData(backtest)
+    backtests.append(backtest_data)
 
 # create the summary
+for backtest in backtests:
+    print(backtest.performance)
+    print(backtest.dsname)
