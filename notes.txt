@@ -275,3 +275,8 @@ a dict which needs to be deep copied. Just for completeness. Even though it's
 currently working by chance.
 
 I don't think it's necessary for me to import the copy module in these cases.
+
+8-18
+For the summary I have to:
+- set the logger to the summary file
+- cycle through the datasets and log the relevant data
