@@ -280,3 +280,23 @@ I don't think it's necessary for me to import the copy module in these cases.
 For the summary I have to:
 - set the logger to the summary file
 - cycle through the datasets and log the relevant data
+
+***
+
+How to use:
+- Create a new mass-backtester folder for each strategy to be tested, rename
+as appropriate
+- You can remove readme, license, notes to clear up space
+- Copy over the strategy file and replace the code in the maba.py file
+- Get the datasets to be tested using get_data.py
+- Copy the datasets to each mass-backtester folder
+- Program maba.py to output the data that you are interested in
+- Run maba.py
+- maba.py creates a summary file in the format you specified
+- Now you can compare each of the strategies by whatever metrics you want by
+entering the corresponding maba folders and checking the results of the summary
+files. You can enter the results into a spreadsheet and do more comparisons.
+
+Notes:
+- Make sure n_early_candles is the same in maba.py and get_data.py before you
+retrieve the datasets
