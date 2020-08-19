@@ -37,6 +37,13 @@ data_dir = "data/"
 start_pos = [0, 1] # [asset, base]
 
 # set up logger
+def set_summary_file():
+    # Set the log destination and format
+    fileh = logging.FileHandler("./summary.txt", "a")
+    formatter = logging.Formatter("%(message)s")
+    fileh.setFormatter(formatter)
+    logger.handlers = [fileh]
+
 def set_log_file(ts, dsname):
     # Set up the log folders
     gmt = time.gmtime(ts / 1000)
@@ -458,7 +465,7 @@ class Backtest:
         if mas > mal: s['rinTarget'] = 1
 
     def run(self):
-        print(self.dsname)
+        print("Backtesting {}.".format(self.dsname))
 
         while self.ticks < self.ticks_end:
             # Preliminary setup
@@ -503,6 +510,7 @@ for dataset in datasets:
     backtests.append(backtest_data)
 
 # create the summary
+set_summary_file()
 for backtest in backtests:
-    print(backtest.performance)
-    print(backtest.dsname)
+    logger.info(backtest.dsname)
+    logger.info(backtest.performance)
