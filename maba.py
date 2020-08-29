@@ -35,9 +35,11 @@ import talib
 n_early_candles = 600
 data_dir = "data/"
 start_pos = [0, 1] # [asset, base]
+logs_enabled = False # True/False
 
 # set up logger
 def set_summary_file():
+    logger.disabled = False
     # Set the log destination and format
     fileh = logging.FileHandler("./summary.txt", "a")
     formatter = logging.Formatter("%(message)s")
@@ -45,6 +47,7 @@ def set_summary_file():
     logger.handlers = [fileh]
 
 def set_log_file(ts, dsname):
+    if logs_enabled != True: return
     # Set up the log folders
     gmt = time.gmtime(ts / 1000)
     asct = time.asctime(gmt)
@@ -65,6 +68,7 @@ def set_log_file(ts, dsname):
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
+if logs_enabled != True: logger.disabled = True
 
 # set up backtester
 def fix_dec(float_in):
@@ -96,13 +100,15 @@ class BacktestData:
         # backtest is a completed Backtest object
         self.dspath = backtest.dspath
         self.dsname = backtest.dsname
+        self.bot_name = backtest.bot_name
+        self.version = backtest.version
 
         self.ticks = backtest.ticks; self.days = backtest.days; self.trades = backtest.trades
         self.exchange = "binance"
         self.base = backtest.base
         self.asset = backtest.asset
         self.pair = backtest.pair
-        self.interval = backtest.interval
+        self.interval_mins = backtest.interval_mins
         self.params = backtest.params
 
         self.min_order = backtest.min_order
@@ -134,9 +140,9 @@ class Backtest:
         self.base = self.dsname_data[0].upper()
         self.asset = self.dsname_data[1].upper()
         self.pair = self.asset + self.base
-        self.interval = int(self.dsname_data[2][:-1])
+        self.interval_mins = int(self.dsname_data[2][:-1])
         set_log_file(self.data[n_early_candles][0], self.dsname)
-        logger.info("New trader instance started on {} {}m.".format(self.pair, self.interval))
+        logger.info("New trader instance started on {} {}m.".format(self.pair, self.interval_mins))
         self.get_params()
 
         self.candles_data = [self.get_candle(dat) for dat in self.data]
@@ -414,7 +420,7 @@ class Backtest:
         tpd = float()
         if self.days != 0: tpd = self.trades / self.days
         winrate = float()
-        if r['W'] + r['L'] != 0: winrate = 100 * r['W'] / (r['W'] + r['L'])
+        if r['W'] + r['L'] != 0: winrate = r['W'] / (r['W'] + r['L'])
         header = "{} {} {} {} {}".format(self.bot_name, self.version, hr, self.exchange.title(), self.pair)
         trades = "{} trades ({} per day)".format(int(self.trades), round(tpd, 2))
         currency = "{} {}".format(fix_dec(p.base), self.base)
@@ -432,7 +438,7 @@ class Backtest:
         logger.info("Currency: {} | Current price: {}".format(currency, price))
         logger.info("Assets: {} | Value of assets: {}".format(assets, assetvalue))
         logger.info("Value of account: {}".format(accountvalue))
-        logger.info("    Win rate: {}%".format(round(winrate, 2)))
+        logger.info("    Win rate: {}%".format(round(100 * winrate, 2)))
         logger.info("    Wins: {} | Average win: {}%".format(r['W'], round(100 * r['w'], 2)))
         logger.info("    Losses: {} | Average loss: {}%".format(r['L'], round(100 * r['l'], 2)))
         logger.info("    Current profits: {}%".format(round(100 * r['cProfits'], 2)))
@@ -470,7 +476,7 @@ class Backtest:
         while self.ticks < self.ticks_end:
             # Preliminary setup
             self.ticks += 1
-            self.days = (self.ticks - 1) * self.interval / (60 * 24)
+            self.days = (self.ticks - 1) * self.interval_mins / (60 * 24)
             set_log_file(self.data[n_early_candles + self.ticks - 1][0], self.dsname)
             self.get_new_candle()
 
@@ -510,7 +516,16 @@ for dataset in datasets:
     backtests.append(backtest_data)
 
 # create the summary
+bot_name = backtests[0].bot_name
+version = backtests[0].version
+interval_mins = backtests[0].interval_mins
+
 set_summary_file()
+logger.info("~~ {} {} {}m ~~".format(bot_name, version, interval_mins))
+
 for backtest in backtests:
+    r = backtest.performance
+    s = backtest.signal
+
     logger.info(backtest.dsname)
-    logger.info(backtest.performance)
+    logger.info(r)
