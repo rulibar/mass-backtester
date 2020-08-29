@@ -1,15 +1,37 @@
 """
-get_data.py (v1.0.1) (20-7-30)
+get_data.py (v1.0.2) (20-8-29)
 https://github.com/rulibar/mass-backtester
 Gets historical candle data from Binance for a specified pair, interval, start
 date, and end date. Gets a specified number of early candles for calculating
 indicators.
+
+Output:
+btc_eth_120m_200101-200301.txt
+[
+    1573502400000,      // Open time
+    '0.02128900',       // Open
+    '0.02130100',       // High
+    '0.02126800',       // Low
+    '0.02130000',       // Close
+    '3221.45600000',    // Volume
+    1573509599999,      // Close time
+    '68.56577333',      // Quote asset volume
+    5295,               // Number of trades
+    '1564.35900000',    // Taker buy base asset volume
+    '33.29836240',      // Taker buy quote asset volume
+    '0'                 // Ignore
+]
+Format of data directly from Binance API.
+The first entry in the data is the oldest.
 
 v1.0.1 (20-7-30)
 - Take asset/base instead of pair
 - Change the naming scheme of data files
     - Use currency pair instead of pair (BTC_ETH instead of ETHBTC)
     - Use interval_mins instead of interval (120m instead of 2h)
+
+v1.0.2 (20-8-29)
+- Say how many lines of data were saved
 
 """
 
@@ -63,8 +85,10 @@ excess = early_candles - n_early_candles
 candles = candles[excess:]
 
 candles_str = str()
+num_lines = 0
 for candle in candles:
     candles_str += str(candle) + "\n"
+    num_lines += 1
 
 file_name = currency_pair.lower()
 file_name += "_" + str(interval_mins) + "m"
@@ -82,4 +106,4 @@ file_name += ".txt"
 
 with open(file_name, "w") as f: f.write(candles_str)
 
-print("Successfully wrote data to {}.".format(file_name))
+print("Successfully saved {} lines of data to {}.".format(num_lines, file_name))
