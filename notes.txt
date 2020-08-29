@@ -300,3 +300,9 @@ files. You can enter the results into a spreadsheet and do more comparisons.
 Notes:
 - Make sure n_early_candles is the same in maba.py and get_data.py before you
 retrieve the datasets
+
+8-19
+Notes:
+- get_data.py should say how many lines it wrote to the data file
+    current: Successfully wrote data to btc_bnb_120m_190101-200101.txt
+    fixed: Successfully saved 4989 lines of data to btc_bnb_120m_190101-200101.txt
