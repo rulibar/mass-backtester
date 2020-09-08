@@ -1,5 +1,5 @@
 """
-Mass Backtester
+Mass Backtester v0.1.0 (20-9-8)
 https://github.com/rulibar/mass-backtester
 
 Gets data files from data_dir with the following format:
@@ -378,7 +378,7 @@ class Backtest:
 
         # set position and apc
         apc = self.last_order['pt']
-        if p.positionValue > self.min_order:
+        if s['rinTarget'] > 0:
             if s['position'] != "long":
                 s['position'] = "long"; s['apc'] = apc
         elif s['position'] != "none":
@@ -447,8 +447,8 @@ class Backtest:
         logger.info("Buy and hold: {}%".format(round(100 * r['bh'], 2)))
 
     def init(self, p):
-        self.bot_name = "maba"
-        self.version = "0.0.0"
+        self.bot_name = "Mass Backtester"
+        self.version = "0.1.0"
         logger.info("Analyzing the market...")
         # get randomization
         # no randomization yet
@@ -496,7 +496,7 @@ class Backtest:
             self.strat(p)
             self.bso(p)
 
-        print("Backtest complete.")
+        print("Backtest complete. Total completed trades: {}".format(self.trades))
 
 # main code
 datasets = os.listdir(data_dir)
