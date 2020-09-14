@@ -1,5 +1,5 @@
 """
-Mass Backtester v0.1.0 (20-9-8)
+Mass Backtester v0.1.1 (20-9-14)
 https://github.com/rulibar/mass-backtester
 
 Gets data files from data_dir with the following format:
@@ -36,6 +36,8 @@ n_early_candles = 600
 data_dir = "data/"
 start_pos = [0, 1] # [asset, base]
 logs_enabled = False # True/False
+
+storage = dict()
 
 # set up logger
 def set_summary_file():
@@ -448,7 +450,7 @@ class Backtest:
 
     def init(self, p):
         self.bot_name = "Mass Backtester"
-        self.version = "0.1.0"
+        self.version = "0.1.1"
         logger.info("Analyzing the market...")
         # get randomization
         # no randomization yet
@@ -496,7 +498,7 @@ class Backtest:
             self.strat(p)
             self.bso(p)
 
-        print("Backtest complete. Total completed trades: {}".format(self.trades))
+        print("Backtest complete. Total completed trades: {:.0f}".format(self.trades))
 
 # main code
 datasets = os.listdir(data_dir)
@@ -516,16 +518,31 @@ for dataset in datasets:
     backtests.append(backtest_data)
 
 # create the summary
+set_summary_file()
 bot_name = backtests[0].bot_name
 version = backtests[0].version
 interval_mins = backtests[0].interval_mins
 
-set_summary_file()
+days_tot = float()
+W_tot = float(); L_tot = float()
+BE_tot = float()
+
 logger.info("~~ {} {} {}m ~~".format(bot_name, version, interval_mins))
 
 for backtest in backtests:
     r = backtest.performance
     s = backtest.signal
 
+    # Total vars
+    days_tot += backtest.days
+    BE_tot += r['be']
+    W_tot += r['W']; L_tot += r['L']
+
     logger.info(backtest.dsname)
     logger.info(r)
+
+trades_tot = int(W_tot + L_tot)
+WR = float()
+if trades_tot != 0: WR = W_tot / trades_tot
+AMR = BE_tot * (30 / days_tot)
+AMT = trades_tot * (30 / days_tot)
