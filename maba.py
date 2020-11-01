@@ -1,5 +1,5 @@
 """
-Mass Backtester v0.1.1 (20-9-14)
+Mass Backtester v0.1.2 (20-10-31)
 https://github.com/rulibar/mass-backtester
 
 Gets data files from data_dir with the following format:
@@ -31,12 +31,13 @@ import random
 import logging
 import talib
 
-# user vars
+# backtest vars
 n_early_candles = 600
 data_dir = "data/"
 start_pos = [0, 1] # [asset, base]
 logs_enabled = False # True/False
 
+# strategy vars
 storage = dict()
 
 # set up logger
@@ -526,8 +527,7 @@ interval_mins = backtests[0].interval_mins
 days_tot = float()
 W_tot = float(); L_tot = float()
 BE_tot = float()
-
-logger.info("~~ {} {} {}m ~~".format(bot_name, version, interval_mins))
+RBH = float(1)
 
 for backtest in backtests:
     r = backtest.performance
@@ -536,13 +536,16 @@ for backtest in backtests:
     # Total vars
     days_tot += backtest.days
     BE_tot += r['be']
+    RBH *= 1 + r['bh']
     W_tot += r['W']; L_tot += r['L']
 
-    logger.info(backtest.dsname)
-    logger.info(r)
-
 trades_tot = int(W_tot + L_tot)
+AMT = trades_tot * (30 / days_tot) # Average monthly trades
+AMR = BE_tot * (30 / days_tot) # Average monthly return
 WR = float()
-if trades_tot != 0: WR = W_tot / trades_tot
-AMR = BE_tot * (30 / days_tot)
-AMT = trades_tot * (30 / days_tot)
+if trades_tot != 0: WR = W_tot / trades_tot # Win rate
+
+print("Recursive buy and hold: {:.2f}%".format(100 * (RBH - 1)))
+print("Total trades: {}".format(trades_tot))
+print("{:.2f}, {:.2f}, {:.2f}".format(AMT, 100 * AMR, 100 * WR))
+logger.info("{:.2f}, {:.2f}, {:.2f}".format(AMT, 100 * AMR, 100 * WR))
