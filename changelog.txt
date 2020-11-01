@@ -7,3 +7,7 @@ v0.1.1 (20-9-14)
 - Added storage dict. Allowing the user to track info not stored in BacktestData
 - Added calculations for key metrics in the summary section
 - Updates to log outputs
+
+v0.1.2 (20-10-31)
+- Added RBH (recursive buy and hold) to summary section
+- Updates to log outputs
