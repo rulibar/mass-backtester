@@ -1,5 +1,5 @@
 """
-Mass Backtester v0.1.2 (20-10-31)
+Mass Backtester v0.1.3 (20-10-31)
 https://github.com/rulibar/mass-backtester
 
 Gets data files from data_dir with the following format:
@@ -80,7 +80,7 @@ def fix_dec(float_in):
     if float_out[-1] == ".": float_out = float_out[:-1]
     return float_out
 
-def shrink_list(list_in, size) -> list:
+def shrink_list(list_in, size):
     if len(list_in) > size: return list_in[-size:]
     return list_in
 
@@ -218,7 +218,7 @@ class Backtest:
             self.last_order = {"type": "none", "amt": 0, "pt": p.price}
 
     def get_params(self):
-        # import and process params
+        # import and process params from config.txt
         params = dict()
         with open("config.txt") as cfg:
             par = [l.split()[0] for l in cfg.read().split("\n")[2:-1]]
@@ -450,11 +450,14 @@ class Backtest:
         logger.info("Buy and hold: {}%".format(round(100 * r['bh'], 2)))
 
     def init(self, p):
+        # Mass Backtester 20/100 SXS
         self.bot_name = "Mass Backtester"
-        self.version = "0.1.1"
+        self.version = "0.1.3"
         logger.info("Analyzing the market...")
-        # get randomization
-        # no randomization yet
+
+        # vars
+        ma_lens = [[20, 100]]
+        storage["ma_lens"] = ma_lens
         logger.info("Ready to start trading...")
 
     def strat(self, p):
@@ -464,14 +467,47 @@ class Backtest:
         - s stands for signal, rinTarget stands for 'ratio invested target'
         - Set s['rinTarget'] between 0 and 1. 0 is 0%, 1 is 100% invested
         """
+        # vars
         s = self.signal
-
+        ma_lens = storage["ma_lens"]
+        num_sigs = len(ma_lens)
         close_data = numpy.array([c['close'] for c in self.candles])
-        mas = talib.SMA(close_data, timeperiod = 20)[-1]
-        mal = talib.SMA(close_data, timeperiod = 100)[-1]
 
+        # get sigs
+        SMAs = dict()
+        class SMA:
+            def __init__(self, ma_len):
+                self.ma_len = ma_len
+                self.arr = talib.SMA(close_data, timeperiod = ma_len)
+                self.price = self.arr[-1]
+                SMAs[ma_len] = self.price
+
+        class SXS:
+            def __init__(self, ma_len_pair):
+                self.pair = ma_len_pair
+                self.trend = "bear"
+                if ma_len_pair[0] not in SMAs:
+                    mas = SMA(ma_len_pair[0])
+                self.mas = SMAs[ma_len_pair[0]]
+                if ma_len_pair[1] not in SMAs:
+                    mal = SMA(ma_len_pair[1])
+                self.mal = SMAs[ma_len_pair[1]]
+                if self.mas > self.mal: self.trend = "bull"
+
+        sigs = list()
+        for i in range(num_sigs):
+            sig = SXS(ma_lens[i])
+            sigs.append(sig)
+        num_sigs = len(sigs)
+
+        # set rinTarget
+        nBulls = 0; nBears = 0
         s['rinTarget'] = 0
-        if mas > mal: s['rinTarget'] = 1
+        for i in range(num_sigs):
+            if sigs[i].trend == "bear": nBears += 1
+            if sigs[i].trend == "bull":
+                nBulls += 1
+                s['rinTarget'] += 1 / num_sigs
 
     def run(self):
         print("Backtesting {}.".format(self.dsname))
