@@ -1,5 +1,5 @@
 """
-get_data.py (v1.0.2) (20-8-29)
+get_data.py v1.0.3 (20-11-07)
 https://github.com/rulibar/mass-backtester
 Gets historical candle data from Binance for a specified pair, interval, start
 date, and end date. Gets a specified number of early candles for calculating
@@ -32,6 +32,10 @@ v1.0.1 (20-7-30)
 
 v1.0.2 (20-8-29)
 - Say how many lines of data were saved
+
+v1.0.3 (20-11-07)
+- Stop putting 0's in front of the month or day if it equals 10
+    - Use >= sign when creating the file name
 
 """
 
@@ -93,14 +97,14 @@ for candle in candles:
 file_name = currency_pair.lower()
 file_name += "_" + str(interval_mins) + "m"
 file_name += "_" + str(start_year)[-2:]
-if start_month > 10: file_name += str(start_month)
+if start_month >= 10: file_name += str(start_month)
 else: file_name += "0" + str(start_month)
-if start_day > 10: file_name += str(start_day)
+if start_day >= 10: file_name += str(start_day)
 else: file_name += "0" + str(start_day)
 file_name += "-" + str(end_year)[-2:]
-if end_month > 10: file_name += str(end_month)
+if end_month >= 10: file_name += str(end_month)
 else: file_name += "0" + str(end_month)
-if end_day > 10: file_name += str(end_day)
+if end_day >= 10: file_name += str(end_day)
 else: file_name += "0" + str(end_day)
 file_name += ".txt"
 
